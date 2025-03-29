@@ -1,10 +1,13 @@
 use clap::{Arg, Command};
+use log::info;
 use serde::{Deserialize, Serialize};
 use shellexpand;
-use std::fs::{File, copy, read_dir, remove_file};
-use std::io::Write;
-use std::path::PathBuf;
-use std::process;
+use std::result::Result;
+use std::{
+    fs::{copy, read_dir, remove_file, write},
+    path::{Path, PathBuf},
+    process,
+};
 
 #[allow(unused)]
 #[derive(Serialize, Deserialize, Debug)]
@@ -60,92 +63,120 @@ struct ColorScheme {
     tertiary_fixed_dim: String,
 }
 
-#[allow(unused)]
 #[derive(Serialize, Deserialize, Debug)]
 struct Colors {
     dark: ColorScheme,
     light: ColorScheme,
 }
 
-#[allow(unused)]
 #[derive(Serialize, Deserialize, Debug)]
 struct GeneratedColours {
     colors: Colors,
 }
 
-#[allow(unused)]
 #[derive(Serialize, Deserialize, Debug)]
 struct WallpaperConfig {
     file_path: String,
     colors: Colors,
 }
 
-fn restart_qtile() {
-    const QTILE_RESTART_COMMAND: &str = "qtile cmd-obj -o cmd -f reload_config";
+// Function to check if a command is available on the system
+fn command_exists(command: &str) -> bool {
+    process::Command::new("which")
+        .arg(command)
+        .output()
+        .map(|output| !output.stdout.is_empty())
+        .unwrap_or(false)
+}
 
+// Function to restart Qtile (assuming Qtile is installed)
+fn restart_qtile() -> Result<(), String> {
+    if !command_exists("qtile") {
+        return Err("Qtile is not installed. Please install Qtile.".to_string());
+    }
+
+    const QTILE_RESTART_COMMAND: &str = "qtile cmd-obj -o cmd -f reload_config";
     process::Command::new("sh")
         .arg("-c")
         .arg(QTILE_RESTART_COMMAND)
         .spawn()
-        .expect("Failed to Restart Qtile!");
+        .map_err(|e| format!("Failed to restart Qtile: {}", e))?;
+    info!("Qtile restarted successfully.");
+    Ok(())
 }
 
-fn get_colors_from_image(image_path: &PathBuf) -> Colors {
-    let image_path = image_path.to_str().unwrap();
-    let matugen_output = process::Command::new("sh")
-        .arg("-c")
-        .arg(format!("matugen image {:?} --json hex", image_path))
+// Function to check if matugen is installed
+fn check_matugen_installed() -> Result<(), String> {
+    if !command_exists("matugen") {
+        return Err("matugen is not installed. Please install matugen.".to_string());
+    }
+    Ok(())
+}
+
+fn get_colors_from_image(image_path: &Path) -> Result<Colors, String> {
+    let output = process::Command::new("matugen")
+        .arg("image")
+        .arg(image_path)
+        .arg("--json")
+        .arg("hex")
         .output()
-        .expect("Failed to execute command");
+        .map_err(|e| format!("Failed to execute matugen command: {}", e))?;
 
-    let matugen_output_stdout = String::from_utf8_lossy(&matugen_output.stdout).to_string();
+    let matugen_output = String::from_utf8_lossy(&output.stdout).to_string();
+    let generated_colours: GeneratedColours = serde_json::from_str(&matugen_output)
+        .map_err(|e| format!("Failed to parse matugen output: {}", e))?;
 
-    let generated_colours: GeneratedColours =
-        serde_json::from_str(&matugen_output_stdout).expect("Failed to parse JSON");
-
-    generated_colours.colors
+    Ok(generated_colours.colors)
 }
 
-fn clear_wallpaper_directory(active_wallpaper_directory: &PathBuf) {
-    if active_wallpaper_directory.is_dir() {
-        for entry in read_dir(active_wallpaper_directory).unwrap() {
-            let entry = entry.unwrap();
+fn clear_wallpaper_directory(active_wallpaper_directory: &Path) -> Result<(), String> {
+    if let Ok(entries) = read_dir(active_wallpaper_directory) {
+        for entry in entries.filter_map(Result::ok) {
             let path = entry.path();
             if path.is_file() {
-                remove_file(path).expect("Failed to clear Wallpaper Directory!");
+                remove_file(&path)
+                    .map_err(|e| format!("Failed to remove file {:?}: {}", path, e))?;
             }
         }
     }
+    info!("Wallpaper directory cleared.");
+    Ok(())
 }
 
-fn write_wallpaper_config(config_directory: PathBuf, wallpaper_config: WallpaperConfig) {
-    let mut config_file_path = config_directory;
-    config_file_path.push("wallpaper_info.json");
+fn write_wallpaper_config(
+    config_directory: &Path,
+    wallpaper_config: WallpaperConfig,
+) -> Result<(), String> {
+    let config_file_path = config_directory.join("wallpaper_info.json");
+    let config_json = serde_json::to_string_pretty(&wallpaper_config)
+        .map_err(|e| format!("Failed to serialize wallpaper config: {}", e))?;
 
-    let mut file = match File::open(&config_file_path) {
-        Ok(file) => file,
-        Err(_) => {
-            println!("Config file not found, creating it...");
-            File::create(&config_file_path).expect("Failed to create config file.")
-        }
-    };
-
-    let config_json = serde_json::to_string_pretty(&wallpaper_config).unwrap();
-
-    file.write_all(&config_json.as_bytes())
-        .expect("Failed to write to wallpaper config!");
+    write(&config_file_path, config_json)
+        .map_err(|e| format!("Failed to write to config file: {}", e))?;
+    info!("Wallpaper config written to {:?}", config_file_path);
+    Ok(())
 }
 
-fn copy_wallpaper(wallpaper_directory: PathBuf, wallpaper_path: PathBuf) {
-    let wallpaper_file_name = wallpaper_path.file_name().unwrap();
-    let mut active_wallpaper_path = wallpaper_directory;
-    active_wallpaper_path.push(wallpaper_file_name);
-    copy(wallpaper_path, active_wallpaper_path)
-        .expect("Failed to copy wallpaper to Qtile Directory");
+fn copy_wallpaper(wallpaper_directory: &Path, wallpaper_path: &Path) -> Result<(), String> {
+    let wallpaper_file_name = wallpaper_path
+        .file_name()
+        .ok_or_else(|| "Wallpaper file name is missing.".to_string())?;
+    let destination = wallpaper_directory.join(wallpaper_file_name);
+    copy(wallpaper_path, &destination)
+        .map_err(|e| format!("Failed to copy wallpaper to {:?}: {}", destination, e))?;
+    info!("Wallpaper copied to {:?}", destination);
+    Ok(())
 }
 
-fn main() {
-    static DEFAULT_QTILE_CONFIG_DIRECTORY: &str = "~/.config/qtile";
+fn resolve_path(directory: &str, sub_path: &str) -> PathBuf {
+    PathBuf::from(shellexpand::tilde(directory).to_string()).join(sub_path)
+}
+
+fn main() -> Result<(), String> {
+    // Initialize logging
+    env_logger::init();
+
+    const DEFAULT_QTILE_CONFIG_DIRECTORY: &str = "~/.config/qtile";
 
     let matches = Command::new("qtwallset")
         .version("0.1.0")
@@ -154,41 +185,37 @@ fn main() {
             Arg::new("output_directory")
                 .short('o')
                 .long("output-directory")
-                .required(false)
                 .default_value(DEFAULT_QTILE_CONFIG_DIRECTORY),
         )
         .arg(Arg::new("wallpaper_path").required(true))
         .get_matches();
 
     let output_directory = matches.get_one::<String>("output_directory").unwrap();
+    let wallpaper_path = Path::new(matches.get_one::<String>("wallpaper_path").unwrap());
 
-    let mut active_wallpaper_directory =
-        PathBuf::from(shellexpand::tilde(output_directory).to_string());
-    active_wallpaper_directory.push("wallpaper");
-    active_wallpaper_directory.push("active");
+    // Step 1: Check for dependencies
+    check_matugen_installed()?;
 
-    let mut wallpaper_info_directory =
-        PathBuf::from(shellexpand::tilde(output_directory).to_string());
-    wallpaper_info_directory.push("cache");
+    // Step 2: Generate colors from wallpaper image
+    let generated_colours = get_colors_from_image(wallpaper_path)?;
 
-    let wallpaper_path = matches.get_one::<String>("wallpaper_path").unwrap();
-    let wallpaper_path = PathBuf::from(wallpaper_path);
+    // Step 3: Set up wallpaper config
+    let active_wallpaper_directory = resolve_path(output_directory, "wallpaper/active");
+    let wallpaper_info_directory = resolve_path(output_directory, "cache");
 
-    let generated_colours = get_colors_from_image(&wallpaper_path);
-
-    let mut new_wallpaper_path = active_wallpaper_directory.to_path_buf();
-    new_wallpaper_path.push(&wallpaper_path.file_name().unwrap());
-
-    let wallpaper_config: WallpaperConfig = WallpaperConfig {
+    let new_wallpaper_path = active_wallpaper_directory.join(wallpaper_path.file_name().unwrap());
+    let wallpaper_config = WallpaperConfig {
         file_path: new_wallpaper_path.to_string_lossy().to_string(),
         colors: generated_colours,
     };
 
-    clear_wallpaper_directory(&active_wallpaper_directory);
+    // Step 4: Clear old wallpaper, copy new one, and write config
+    clear_wallpaper_directory(&active_wallpaper_directory)?;
+    copy_wallpaper(&active_wallpaper_directory, wallpaper_path)?;
+    write_wallpaper_config(&wallpaper_info_directory, wallpaper_config)?;
 
-    copy_wallpaper(active_wallpaper_directory, wallpaper_path);
+    // Step 5: Restart Qtile
+    restart_qtile()?;
 
-    write_wallpaper_config(wallpaper_info_directory, wallpaper_config);
-
-    restart_qtile();
+    Ok(())
 }
