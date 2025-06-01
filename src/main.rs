@@ -187,6 +187,13 @@ fn main() -> Result<(), String> {
                 .long("output-directory")
                 .default_value(DEFAULT_QTILE_CONFIG_DIRECTORY),
         )
+        .arg(
+            Arg::new("no_reload")
+                .long("no-reload")
+                .action(clap::ArgAction::SetTrue)
+                .help("Do not reload Qtile")
+                .required(false),
+        )
         .arg(Arg::new("wallpaper_path").required(true))
         .get_matches();
 
@@ -214,8 +221,11 @@ fn main() -> Result<(), String> {
     copy_wallpaper(&active_wallpaper_directory, wallpaper_path)?;
     write_wallpaper_config(&wallpaper_info_directory, wallpaper_config)?;
 
+    let do_not_reload = matches.get_flag("no_reload");
     // Step 5: Restart Qtile
-    restart_qtile()?;
+    if !do_not_reload {
+        restart_qtile()?;
+    }
 
     Ok(())
 }
