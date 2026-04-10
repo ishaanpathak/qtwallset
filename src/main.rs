@@ -10,10 +10,15 @@ use std::{
 };
 
 #[derive(Serialize, Deserialize, Debug)]
+struct ColorValue {
+    color: String,
+}
+
+#[derive(Serialize, Deserialize, Debug)]
 struct ColorVariants {
-    dark: String,
-    light: String,
-    default: String,
+    dark: ColorValue,
+    light: ColorValue,
+    default: ColorValue,
 }
 
 #[derive(Serialize, Deserialize, Debug)]
@@ -75,109 +80,173 @@ struct MatugenOutput {
 }
 
 impl MatugenColors {
+    fn pick(v: ColorVariants) -> (String, String) {
+        (v.dark.color, v.light.color)
+    }
+
     fn into_colors(self) -> Colors {
+        let (background_d, background_l) = Self::pick(self.background);
+        let (error_d, error_l) = Self::pick(self.error);
+        let (error_container_d, error_container_l) = Self::pick(self.error_container);
+        let (inverse_on_surface_d, inverse_on_surface_l) = Self::pick(self.inverse_on_surface);
+        let (inverse_primary_d, inverse_primary_l) = Self::pick(self.inverse_primary);
+        let (inverse_surface_d, inverse_surface_l) = Self::pick(self.inverse_surface);
+        let (on_background_d, on_background_l) = Self::pick(self.on_background);
+        let (on_error_d, on_error_l) = Self::pick(self.on_error);
+        let (on_error_container_d, on_error_container_l) = Self::pick(self.on_error_container);
+        let (on_primary_d, on_primary_l) = Self::pick(self.on_primary);
+        let (on_primary_container_d, on_primary_container_l) =
+            Self::pick(self.on_primary_container);
+        let (on_primary_fixed_d, on_primary_fixed_l) = Self::pick(self.on_primary_fixed);
+        let (on_primary_fixed_variant_d, on_primary_fixed_variant_l) =
+            Self::pick(self.on_primary_fixed_variant);
+        let (on_secondary_d, on_secondary_l) = Self::pick(self.on_secondary);
+        let (on_secondary_container_d, on_secondary_container_l) =
+            Self::pick(self.on_secondary_container);
+        let (on_secondary_fixed_d, on_secondary_fixed_l) = Self::pick(self.on_secondary_fixed);
+        let (on_secondary_fixed_variant_d, on_secondary_fixed_variant_l) =
+            Self::pick(self.on_secondary_fixed_variant);
+        let (on_surface_d, on_surface_l) = Self::pick(self.on_surface);
+        let (on_surface_variant_d, on_surface_variant_l) = Self::pick(self.on_surface_variant);
+        let (on_tertiary_d, on_tertiary_l) = Self::pick(self.on_tertiary);
+        let (on_tertiary_container_d, on_tertiary_container_l) =
+            Self::pick(self.on_tertiary_container);
+        let (on_tertiary_fixed_d, on_tertiary_fixed_l) = Self::pick(self.on_tertiary_fixed);
+        let (on_tertiary_fixed_variant_d, on_tertiary_fixed_variant_l) =
+            Self::pick(self.on_tertiary_fixed_variant);
+        let (outline_d, outline_l) = Self::pick(self.outline);
+        let (outline_variant_d, outline_variant_l) = Self::pick(self.outline_variant);
+        let (primary_d, primary_l) = Self::pick(self.primary);
+        let (primary_container_d, primary_container_l) = Self::pick(self.primary_container);
+        let (primary_fixed_d, primary_fixed_l) = Self::pick(self.primary_fixed);
+        let (primary_fixed_dim_d, primary_fixed_dim_l) = Self::pick(self.primary_fixed_dim);
+        let (scrim_d, scrim_l) = Self::pick(self.scrim);
+        let (secondary_d, secondary_l) = Self::pick(self.secondary);
+        let (secondary_container_d, secondary_container_l) = Self::pick(self.secondary_container);
+        let (secondary_fixed_d, secondary_fixed_l) = Self::pick(self.secondary_fixed);
+        let (secondary_fixed_dim_d, secondary_fixed_dim_l) = Self::pick(self.secondary_fixed_dim);
+        let (shadow_d, shadow_l) = Self::pick(self.shadow);
+        let (surface_d, surface_l) = Self::pick(self.surface);
+        let (surface_bright_d, surface_bright_l) = Self::pick(self.surface_bright);
+        let (surface_container_d, surface_container_l) = Self::pick(self.surface_container);
+        let (surface_container_high_d, surface_container_high_l) =
+            Self::pick(self.surface_container_high);
+        let (surface_container_highest_d, surface_container_highest_l) =
+            Self::pick(self.surface_container_highest);
+        let (surface_container_low_d, surface_container_low_l) =
+            Self::pick(self.surface_container_low);
+        let (surface_container_lowest_d, surface_container_lowest_l) =
+            Self::pick(self.surface_container_lowest);
+        let (surface_dim_d, surface_dim_l) = Self::pick(self.surface_dim);
+        let (surface_tint_d, surface_tint_l) = Self::pick(self.surface_tint);
+        let (surface_variant_d, surface_variant_l) = Self::pick(self.surface_variant);
+        let (tertiary_d, tertiary_l) = Self::pick(self.tertiary);
+        let (tertiary_container_d, tertiary_container_l) = Self::pick(self.tertiary_container);
+        let (tertiary_fixed_d, tertiary_fixed_l) = Self::pick(self.tertiary_fixed);
+        let (tertiary_fixed_dim_d, tertiary_fixed_dim_l) = Self::pick(self.tertiary_fixed_dim);
+
         Colors {
             dark: ColorScheme {
-                background: self.background.dark,
-                error: self.error.dark,
-                error_container: self.error_container.dark,
-                inverse_on_surface: self.inverse_on_surface.dark,
-                inverse_primary: self.inverse_primary.dark,
-                inverse_surface: self.inverse_surface.dark,
-                on_background: self.on_background.dark,
-                on_error: self.on_error.dark,
-                on_error_container: self.on_error_container.dark,
-                on_primary: self.on_primary.dark,
-                on_primary_container: self.on_primary_container.dark,
-                on_primary_fixed: self.on_primary_fixed.dark,
-                on_primary_fixed_variant: self.on_primary_fixed_variant.dark,
-                on_secondary: self.on_secondary.dark,
-                on_secondary_container: self.on_secondary_container.dark,
-                on_secondary_fixed: self.on_secondary_fixed.dark,
-                on_secondary_fixed_variant: self.on_secondary_fixed_variant.dark,
-                on_surface: self.on_surface.dark,
-                on_surface_variant: self.on_surface_variant.dark,
-                on_tertiary: self.on_tertiary.dark,
-                on_tertiary_container: self.on_tertiary_container.dark,
-                on_tertiary_fixed: self.on_tertiary_fixed.dark,
-                on_tertiary_fixed_variant: self.on_tertiary_fixed_variant.dark,
-                outline: self.outline.dark,
-                outline_variant: self.outline_variant.dark,
-                primary: self.primary.dark,
-                primary_container: self.primary_container.dark,
-                primary_fixed: self.primary_fixed.dark,
-                primary_fixed_dim: self.primary_fixed_dim.dark,
-                scrim: self.scrim.dark,
-                secondary: self.secondary.dark,
-                secondary_container: self.secondary_container.dark,
-                secondary_fixed: self.secondary_fixed.dark,
-                secondary_fixed_dim: self.secondary_fixed_dim.dark,
-                shadow: self.shadow.dark,
-                surface: self.surface.dark,
-                surface_bright: self.surface_bright.dark,
-                surface_container: self.surface_container.dark,
-                surface_container_high: self.surface_container_high.dark,
-                surface_container_highest: self.surface_container_highest.dark,
-                surface_container_low: self.surface_container_low.dark,
-                surface_container_lowest: self.surface_container_lowest.dark,
-                surface_dim: self.surface_dim.dark,
-                surface_tint: self.surface_tint.dark,
-                surface_variant: self.surface_variant.dark,
-                tertiary: self.tertiary.dark,
-                tertiary_container: self.tertiary_container.dark,
-                tertiary_fixed: self.tertiary_fixed.dark,
-                tertiary_fixed_dim: self.tertiary_fixed_dim.dark,
+                background: background_d,
+                error: error_d,
+                error_container: error_container_d,
+                inverse_on_surface: inverse_on_surface_d,
+                inverse_primary: inverse_primary_d,
+                inverse_surface: inverse_surface_d,
+                on_background: on_background_d,
+                on_error: on_error_d,
+                on_error_container: on_error_container_d,
+                on_primary: on_primary_d,
+                on_primary_container: on_primary_container_d,
+                on_primary_fixed: on_primary_fixed_d,
+                on_primary_fixed_variant: on_primary_fixed_variant_d,
+                on_secondary: on_secondary_d,
+                on_secondary_container: on_secondary_container_d,
+                on_secondary_fixed: on_secondary_fixed_d,
+                on_secondary_fixed_variant: on_secondary_fixed_variant_d,
+                on_surface: on_surface_d,
+                on_surface_variant: on_surface_variant_d,
+                on_tertiary: on_tertiary_d,
+                on_tertiary_container: on_tertiary_container_d,
+                on_tertiary_fixed: on_tertiary_fixed_d,
+                on_tertiary_fixed_variant: on_tertiary_fixed_variant_d,
+                outline: outline_d,
+                outline_variant: outline_variant_d,
+                primary: primary_d,
+                primary_container: primary_container_d,
+                primary_fixed: primary_fixed_d,
+                primary_fixed_dim: primary_fixed_dim_d,
+                scrim: scrim_d,
+                secondary: secondary_d,
+                secondary_container: secondary_container_d,
+                secondary_fixed: secondary_fixed_d,
+                secondary_fixed_dim: secondary_fixed_dim_d,
+                shadow: shadow_d,
+                surface: surface_d,
+                surface_bright: surface_bright_d,
+                surface_container: surface_container_d,
+                surface_container_high: surface_container_high_d,
+                surface_container_highest: surface_container_highest_d,
+                surface_container_low: surface_container_low_d,
+                surface_container_lowest: surface_container_lowest_d,
+                surface_dim: surface_dim_d,
+                surface_tint: surface_tint_d,
+                surface_variant: surface_variant_d,
+                tertiary: tertiary_d,
+                tertiary_container: tertiary_container_d,
+                tertiary_fixed: tertiary_fixed_d,
+                tertiary_fixed_dim: tertiary_fixed_dim_d,
             },
             light: ColorScheme {
-                background: self.background.light,
-                error: self.error.light,
-                error_container: self.error_container.light,
-                inverse_on_surface: self.inverse_on_surface.light,
-                inverse_primary: self.inverse_primary.light,
-                inverse_surface: self.inverse_surface.light,
-                on_background: self.on_background.light,
-                on_error: self.on_error.light,
-                on_error_container: self.on_error_container.light,
-                on_primary: self.on_primary.light,
-                on_primary_container: self.on_primary_container.light,
-                on_primary_fixed: self.on_primary_fixed.light,
-                on_primary_fixed_variant: self.on_primary_fixed_variant.light,
-                on_secondary: self.on_secondary.light,
-                on_secondary_container: self.on_secondary_container.light,
-                on_secondary_fixed: self.on_secondary_fixed.light,
-                on_secondary_fixed_variant: self.on_secondary_fixed_variant.light,
-                on_surface: self.on_surface.light,
-                on_surface_variant: self.on_surface_variant.light,
-                on_tertiary: self.on_tertiary.light,
-                on_tertiary_container: self.on_tertiary_container.light,
-                on_tertiary_fixed: self.on_tertiary_fixed.light,
-                on_tertiary_fixed_variant: self.on_tertiary_fixed_variant.light,
-                outline: self.outline.light,
-                outline_variant: self.outline_variant.light,
-                primary: self.primary.light,
-                primary_container: self.primary_container.light,
-                primary_fixed: self.primary_fixed.light,
-                primary_fixed_dim: self.primary_fixed_dim.light,
-                scrim: self.scrim.light,
-                secondary: self.secondary.light,
-                secondary_container: self.secondary_container.light,
-                secondary_fixed: self.secondary_fixed.light,
-                secondary_fixed_dim: self.secondary_fixed_dim.light,
-                shadow: self.shadow.light,
-                surface: self.surface.light,
-                surface_bright: self.surface_bright.light,
-                surface_container: self.surface_container.light,
-                surface_container_high: self.surface_container_high.light,
-                surface_container_highest: self.surface_container_highest.light,
-                surface_container_low: self.surface_container_low.light,
-                surface_container_lowest: self.surface_container_lowest.light,
-                surface_dim: self.surface_dim.light,
-                surface_tint: self.surface_tint.light,
-                surface_variant: self.surface_variant.light,
-                tertiary: self.tertiary.light,
-                tertiary_container: self.tertiary_container.light,
-                tertiary_fixed: self.tertiary_fixed.light,
-                tertiary_fixed_dim: self.tertiary_fixed_dim.light,
+                background: background_l,
+                error: error_l,
+                error_container: error_container_l,
+                inverse_on_surface: inverse_on_surface_l,
+                inverse_primary: inverse_primary_l,
+                inverse_surface: inverse_surface_l,
+                on_background: on_background_l,
+                on_error: on_error_l,
+                on_error_container: on_error_container_l,
+                on_primary: on_primary_l,
+                on_primary_container: on_primary_container_l,
+                on_primary_fixed: on_primary_fixed_l,
+                on_primary_fixed_variant: on_primary_fixed_variant_l,
+                on_secondary: on_secondary_l,
+                on_secondary_container: on_secondary_container_l,
+                on_secondary_fixed: on_secondary_fixed_l,
+                on_secondary_fixed_variant: on_secondary_fixed_variant_l,
+                on_surface: on_surface_l,
+                on_surface_variant: on_surface_variant_l,
+                on_tertiary: on_tertiary_l,
+                on_tertiary_container: on_tertiary_container_l,
+                on_tertiary_fixed: on_tertiary_fixed_l,
+                on_tertiary_fixed_variant: on_tertiary_fixed_variant_l,
+                outline: outline_l,
+                outline_variant: outline_variant_l,
+                primary: primary_l,
+                primary_container: primary_container_l,
+                primary_fixed: primary_fixed_l,
+                primary_fixed_dim: primary_fixed_dim_l,
+                scrim: scrim_l,
+                secondary: secondary_l,
+                secondary_container: secondary_container_l,
+                secondary_fixed: secondary_fixed_l,
+                secondary_fixed_dim: secondary_fixed_dim_l,
+                shadow: shadow_l,
+                surface: surface_l,
+                surface_bright: surface_bright_l,
+                surface_container: surface_container_l,
+                surface_container_high: surface_container_high_l,
+                surface_container_highest: surface_container_highest_l,
+                surface_container_low: surface_container_low_l,
+                surface_container_lowest: surface_container_lowest_l,
+                surface_dim: surface_dim_l,
+                surface_tint: surface_tint_l,
+                surface_variant: surface_variant_l,
+                tertiary: tertiary_l,
+                tertiary_container: tertiary_container_l,
+                tertiary_fixed: tertiary_fixed_l,
+                tertiary_fixed_dim: tertiary_fixed_dim_l,
             },
         }
     }
@@ -286,6 +355,8 @@ fn get_colors_from_image(image_path: &Path) -> Result<Colors, String> {
     let output = process::Command::new("matugen")
         .arg("image")
         .arg(image_path)
+        .arg("--source-color-index")
+        .arg("0")
         .arg("--json")
         .arg("hex")
         .output()

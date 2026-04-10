@@ -1,6 +1,6 @@
 # Maintainer: Your Name <youremail@example.com>
 pkgname=qtwallset
-pkgver=0.1.2
+pkgver=0.1.3
 pkgrel=1
 pkgdesc="A tool to set Qtile wallpaper and regenerate matugen colors"
 arch=('x86_64')
